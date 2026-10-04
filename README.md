@@ -153,8 +153,7 @@ across `N` and every run is evaluated against the same held-out channels.
 @article{beyraghi2026memgen,
   title   = {Learn Before Memorizing: Generalization Windows in
              Diffusion-Based Wireless Channel Synthesis},
-  author  = {Beyraghi, Sina and Sadeghian, Masoud and Lozano, Angel and
-             Almasan, Paul and Geraci, Giovanni},
+  author  = {Sina Beyraghi, Masoud Sadeghian, Angel Lozano, Paul Almasan, Giovanni Geraci},
   year    = {2026}
 }
 ```
