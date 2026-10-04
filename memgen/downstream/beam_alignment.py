@@ -1,17 +1,16 @@
 """Beam alignment: does synthetic data help a site-specific beam predictor?
 
-A learned probing/beam-synthesis autoencoder (DL-GF) observes a handful of
-probing measurements and predicts the transmit and receive beams. Exactly as in
+A learned probing and beam-synthesis network observes a handful of probing
+measurements and predicts the transmit and receive beams. Exactly as in
 :mod:`memgen.downstream.csi_compression`, the reference arm trains on the ``N``
 real channels the DDIM saw, the augmented arm tops them up with channels
 sampled from a DDIM checkpoint, and the resulting beamforming SNR is reported
 against that checkpoint.
 
-Scale handling follows the reference DL-GF pipeline: training channels are
-Frobenius-normalised per sample whenever real and synthetic channels are mixed,
-the network input is divided by the training max-abs, and the beamforming gain
-is always evaluated on the raw physical test channels so the reported SNR stays
-meaningful.
+Scale handling: training channels are Frobenius-normalised per sample whenever
+real and synthetic channels are mixed, the network input is divided by the
+training max-abs, and the beamforming gain is always evaluated on the raw
+physical test channels so the reported SNR stays meaningful.
 """
 
 from __future__ import annotations
@@ -27,7 +26,8 @@ from ..beamspace import to_antenna, upa_dft_codebook
 from ..datasets import load_pool
 from ..model import build_ddim
 from ..sampling import cached_samples, list_checkpoints, load_checkpoint
-from .dlgf import BF_loss, Joint_BF_Autoencoder, dB_2_pow, eval_model, pow_2_dB
+from .beamforming import (BeamAlignmentNet, beamforming_gain,
+                          beamforming_gain_numpy, db_to_pow, pow_to_db)
 
 __all__ = ["System", "run", "baselines"]
 
@@ -44,7 +44,7 @@ class System:
                  noise_psd_dbm_hz: float = -161.0, measurement_gain: float = 16.0):
         self.tx_power_dbm = tx_power_dbm
         self.noise_power_dbm = noise_psd_dbm_hz + 10.0 * np.log10(bandwidth_mhz * 1e6)
-        self.noise_lin = dB_2_pow(self.noise_power_dbm - tx_power_dbm)
+        self.noise_lin = db_to_pow(self.noise_power_dbm - tx_power_dbm)
         self.measurement_noise = self.noise_lin / measurement_gain
 
 
@@ -54,15 +54,10 @@ def _frobenius_normalise(h: np.ndarray) -> np.ndarray:
 
 
 def _build_model(n_rx: int, n_tx: int, n_probe: int, system: System,
-                 norm_factor: float) -> Joint_BF_Autoencoder:
-    """Fully learned Tx/Rx probing with diagonal feedback and an MLP synthesiser."""
-    return Joint_BF_Autoencoder(
-        num_antenna_Tx=n_tx, num_antenna_Rx=n_rx,
-        num_probing_beam_Tx=n_probe, num_probing_beam_Rx=n_probe,
-        noise_power=system.measurement_noise, norm_factor=norm_factor,
-        feedback="diagonal", num_feedback=None,
-        learned_probing="TxRx", beam_synthesizer="MLP",
-    )
+                 norm_factor: float) -> BeamAlignmentNet:
+    return BeamAlignmentNet(n_rx=n_rx, n_tx=n_tx, n_probe=n_probe,
+                            noise_power=system.measurement_noise,
+                            norm_factor=norm_factor)
 
 
 def train_predictor(h_train: np.ndarray, n_probe: int, system: System, *,
@@ -83,15 +78,14 @@ def train_predictor(h_train: np.ndarray, n_probe: int, system: System, *,
     model = _build_model(h_train.shape[1], h_train.shape[2], n_probe,
                          system, norm_factor).to(device)
     optimiser = torch.optim.Adam(model.parameters(), lr=lr, amsgrad=True)
-    loss_fn = BF_loss(noise_power_dBm=system.noise_power_dbm,
-                      Tx_power_dBm=system.tx_power_dbm)
 
     model.train()
     for _ in range(epochs):
         for (batch,) in loader:
             optimiser.zero_grad()
-            tx_beam, rx_beam, _ = model(batch)
-            loss_fn(batch, tx_beam, rx_beam).backward()
+            tx_beam, rx_beam = model(batch)
+            loss = -beamforming_gain(batch, tx_beam, rx_beam).mean()
+            loss.backward()
             optimiser.step()
     return {k: v.cpu() for k, v in model.state_dict().items()}, norm_factor
 
@@ -103,28 +97,27 @@ def evaluate_predictor(state_dict, n_probe: int, h_test: np.ndarray,
     model = _build_model(h_test.shape[1], h_test.shape[2], n_probe, system, 1.0)
     model.load_state_dict(state_dict)
     model.eval()
-    norm_factor = model.joint_beamformer.norm_factor.item()
+    norm_factor = model.probing.norm_factor.item()
 
     h_in = _frobenius_normalise(h_test) if frobenius else h_test.astype(np.complex64)
-    np.random.seed(seed)
+    torch.manual_seed(seed)
     with torch.no_grad():
-        gain, _ = eval_model(model, torch.from_numpy(h_in / norm_factor), h_test,
-                             noise_power=system.measurement_noise,
-                             prediction_mode="GF", feedback_mode="diagonal")
+        tx_beam, rx_beam = model(torch.from_numpy(h_in / norm_factor))
+    gain = beamforming_gain_numpy(h_test, tx_beam.numpy(), rx_beam.numpy())
     snr_lin = gain / system.noise_lin
-    return float(np.mean(pow_2_dB(snr_lin))), float(np.mean(np.log2(1.0 + snr_lin)))
+    return float(np.mean(pow_to_db(snr_lin))), float(np.mean(np.log2(1.0 + snr_lin)))
 
 
 def baselines(h_test: np.ndarray, system: System,
               spec: cfg.DatasetSpec) -> dict[str, float]:
     """Matched-filter upper bound and genie-aided DFT beam selection, in dB."""
     singular = np.linalg.svd(h_test, compute_uv=False)
-    mrt_mrc = pow_2_dB((singular[:, 0] ** 2) / system.noise_lin)
+    mrt_mrc = pow_to_db((singular[:, 0] ** 2) / system.noise_lin)
 
     cb_rx = upa_dft_codebook(*spec.rx_array)
     cb_tx = upa_dft_codebook(*spec.tx_array)
     gains = np.abs(cb_rx.conj().T @ h_test @ cb_tx) ** 2
-    genie = pow_2_dB(gains.reshape(len(gains), -1).max(axis=1) / system.noise_lin)
+    genie = pow_to_db(gains.reshape(len(gains), -1).max(axis=1) / system.noise_lin)
     return {"mrt_mrc_db": float(np.mean(mrt_mrc)),
             "genie_dft_db": float(np.mean(genie))}
 

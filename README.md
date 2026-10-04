@@ -7,7 +7,7 @@
 <p align="center">
   <a href="#installation"><img alt="python" src="https://img.shields.io/badge/python-3.10%2B-blue.svg"></a>
   <a href="https://pytorch.org"><img alt="pytorch" src="https://img.shields.io/badge/pytorch-2.0%2B-ee4c2c.svg"></a>
-  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0-green.svg"></a>
+  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-green.svg"></a>
 </p>
 
 ---
@@ -37,9 +37,9 @@ The window opens at `tau_gen`, where `FCD` reaches its floor, and closes at
   arguments, not separate scripts.
 - **Self-consistent metrics.** `FCD` and `f_mem` are computed from the same
   generated channels in the same beamspace feature space.
-- **Downstream read-out.** CSI compression (CRNet) and beam alignment (DL-GF)
-  consume the generated channels through a leakage-safe split, so their gain
-  curves can be overlaid directly on the window.
+- **Downstream read-out.** CSI compression and beam alignment consume the
+  generated channels through a leakage-safe split, so their gain curves can be
+  overlaid directly on the window.
 - **Code only.** No datasets, checkpoints, generated channels or figures are
   committed; everything is regenerated from the commands below.
 
@@ -61,8 +61,8 @@ memgen/
 └── downstream/
     ├── crnet.py            CRNet autoencoder for CSI compression
     ├── csi_compression.py  reference / augmented / full-real comparison
-    ├── beam_alignment.py   learned probing-beam experiment
-    └── dlgf/               vendored DL-GF architecture (GPL-3.0)
+    ├── beamforming.py      learned probing beams and beam synthesis
+    └── beam_alignment.py   learned probing-beam experiment
 ```
 
 ## Installation
@@ -153,16 +153,9 @@ across `N` and every run is evaluated against the same held-out channels.
 @article{beyraghi2026memgen,
   title   = {Learn Before Memorizing: Generalization Windows in
              Diffusion-Based Wireless Channel Synthesis},
-  author  = {Beyraghi, Sina and Sadeghian, Masoud and Bin Ismail, Firdous and
-             Lozano, Angel and Almasan, Paul and Geraci, Giovanni},
+  author  = {Beyraghi, Sina and Sadeghian, Masoud and Lozano, Angel and
+             Almasan, Paul and Geraci, Giovanni},
   year    = {2026}
 }
 ```
-
-## License
-
-Released under the GNU General Public License v3.0, because the vendored
-beam-alignment architecture is GPL-3.0. The CRNet-derived code keeps its
-upstream MIT notice. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and
-[LICENSES/](LICENSES).
 

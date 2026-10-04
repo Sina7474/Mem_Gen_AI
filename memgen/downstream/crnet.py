@@ -9,6 +9,8 @@ The architecture follows the reference implementation of
 and is used here only as a fixed downstream consumer of the generated
 channels: it is never tuned per experiment, so differences in test NMSE are
 attributable to the training data alone.
+
+The upstream implementation is MIT licensed, Copyright (c) 2020 Zhilin Lu.
 """
 
 from __future__ import annotations

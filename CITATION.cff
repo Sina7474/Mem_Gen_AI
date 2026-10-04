@@ -7,8 +7,6 @@ authors:
     given-names: Sina
   - family-names: Sadeghian
     given-names: Masoud
-  - family-names: Bin Ismail
-    given-names: Firdous
   - family-names: Lozano
     given-names: Angel
   - family-names: Almasan
@@ -16,5 +14,5 @@ authors:
   - family-names: Geraci
     given-names: Giovanni
 repository-code: "https://github.com/Sina7474/Mem_Gen_AI"
-license: GPL-3.0-only
+license: MIT
 

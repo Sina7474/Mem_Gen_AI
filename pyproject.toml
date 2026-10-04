@@ -12,7 +12,6 @@ license = { file = "LICENSE" }
 authors = [
     { name = "Sina Beyraghi" },
     { name = "Masoud Sadeghian" },
-    { name = "Firdous Bin Ismail" },
     { name = "Angel Lozano" },
     { name = "Paul Almasan" },
     { name = "Giovanni Geraci" },
@@ -20,6 +19,7 @@ authors = [
 keywords = ["diffusion models", "memorization", "MIMO", "channel modeling", "6G"]
 classifiers = [
     "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
