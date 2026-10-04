@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "memgen"
+version = "1.0.0"
+description = "Generalisation windows in diffusion-based wireless channel synthesis"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Sina Beyraghi" },
+    { name = "Masoud Sadeghian" },
+    { name = "Firdous Bin Ismail" },
+    { name = "Angel Lozano" },
+    { name = "Paul Almasan" },
+    { name = "Giovanni Geraci" },
+]
+keywords = ["diffusion models", "memorization", "MIMO", "channel modeling", "6G"]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "torch>=2.0",
+    "matplotlib>=3.7",
+    "tqdm>=4.65",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4", "ruff>=0.4"]
+
+[project.urls]
+Repository = "https://github.com/Sina7474/Mem_Gen_AI"
+
+[project.scripts]
+memgen = "memgen.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["memgen*"]
+
+[tool.ruff]
+line-length = 90
+target-version = "py310"

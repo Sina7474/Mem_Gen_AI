@@ -1,0 +1,135 @@
+# Reproducing the paper
+
+Every figure is produced by a `memgen train` / `memgen evaluate` /
+`memgen figure` triple. Tables land in `results/tables`, figures in
+`results/figures`.
+
+Training is the only expensive step. A full sweep is many GPU-hours; all later
+commands reuse the cached checkpoints and generated channels.
+
+## 1. Denoising loss versus training time
+
+```bash
+for n in 100 200 500 1000 2000 4000; do memgen train --size $n; done
+memgen figure loss runs/sionna_3p5ghz/*/loss_curve.csv
+```
+
+The test loss separates from the training loss exactly where memorization
+begins, which is the cheapest available proxy for `tau_mem`.
+
+## 2. Fidelity, memorization and the `tau/N` collapse
+
+```bash
+memgen evaluate dataset-size --sizes 100 200 500 1000 2000 4000
+memgen figure fidelity results/tables/sionna_3p5ghz_dataset-size.csv
+memgen figure collapse  results/tables/sionna_3p5ghz_dataset-size.csv
+```
+
+The first figure shows `FCD` against its real-real floor and `f_mem` with
+bootstrap confidence bands, with the generalization window shaded. The second
+rescales the horizontal axis by `N`: the curves collapse, which is the
+statement that the onset of memorization is proportional to the number of
+training channels.
+
+Threshold robustness, reported in the appendix, is a re-run with a different
+nearest-neighbour ratio:
+
+```bash
+memgen evaluate dataset-size --kappa 0.25 \
+    --output results/tables/dataset-size_kappa0.25.csv
+```
+
+## 3. Model capacity
+
+```bash
+for w in 64 128 256; do
+  for n in 200 1000; do memgen train --size $n --width $w; done
+done
+memgen evaluate model-size
+memgen figure fidelity results/tables/sionna_3p5ghz_model-size.csv --by width
+```
+
+## 4. Batch-size and full-batch controls
+
+```bash
+for b in 100 500 1000; do memgen train --size 1000 --batch-size $b; done
+memgen evaluate batch-size
+memgen figure fidelity results/tables/sionna_3p5ghz_batch-size.csv --by batch_size
+
+for n in 200 500 1000; do memgen train --size $n --full-batch; done
+memgen evaluate full-batch
+memgen figure fidelity results/tables/sionna_3p5ghz_full-batch.csv
+```
+
+These rule out gradient noise as the mechanism behind the window: freezing the
+per-step noise scale, or removing it entirely, leaves the window intact.
+
+## 5. Phase diagram
+
+```bash
+memgen phase results/tables/sionna_3p5ghz_model-size.csv \
+    --eps 0.10 --multipliers 1 2 5
+memgen figure phase results/tables/phase_boundary.csv
+```
+
+`memgen phase` first reads `tau_gen(W)` off the fidelity curves and prints the
+products `W * tau_gen`, which is the collapse the boundary model assumes. It
+then fits `logit(f_mem) = a + b log N` per capacity and solves for the critical
+dataset size at the memorization level `eps`, with a parametric bootstrap
+interval. Capacities whose measured range does not bracket the crossing are
+reported as `censored`, `above_range` or `below_range` rather than
+extrapolated.
+
+## 6. CSI compression
+
+```bash
+memgen csi --sizes 200 500 1000 --budget 5000
+memgen figure downstream results/tables/csi_compression.csv \
+    --value test_nmse_db --ylabel "test NMSE [dB]"
+```
+
+Every CRNet sees the same number of training channels. The reference arm uses
+only the `N` real channels the generator saw; the augmented arm keeps those and
+fills the rest from a DDIM checkpoint. The NMSE is lowest for checkpoints
+inside the generalization window.
+
+## 7. Beam alignment
+
+```bash
+memgen beam --dataset sionna_28ghz --sizes 100 500 --probes 2 4
+memgen figure downstream results/tables/beam_alignment.csv \
+    --value snr_db --ylabel "average SNR [dB]"
+```
+
+## 8. Replication on the other datasets
+
+```bash
+for n in 100 200 500 1000 2000; do memgen train --dataset sionna_28ghz --size $n; done
+memgen evaluate dataset-size --dataset sionna_28ghz
+memgen figure fidelity results/tables/sionna_28ghz_dataset-size.csv
+
+for n in 200 500 1000 2000; do memgen train --dataset dichasus_1p272ghz --size $n; done
+memgen evaluate dataset-size --dataset dichasus_1p272ghz
+memgen figure collapse results/tables/dichasus_1p272ghz_dataset-size.csv
+```
+
+The 28 GHz ray-traced scene and the 1.272 GHz measurements reproduce both the
+window and the `tau/N` collapse, so neither is an artefact of one propagation
+regime or of simulated data.
+
+## Output schema
+
+`memgen evaluate` writes one row per checkpoint:
+
+| Column | Meaning |
+| --- | --- |
+| `dataset`, `N`, `width`, `batch_size` | run identity |
+| `tau`, `epoch` | training time in optimiser steps and in epochs |
+| `fcd_gen_test`, `fcd_gen_test_std` | fidelity, mean and spread over the test folds |
+| `fcd_train_test`, `fcd_train_test_std` | real-real floor for this run |
+| `f_mem`, `f_mem_ci_low`, `f_mem_ci_high` | memorization fraction with a 95 % bootstrap interval |
+| `kappa`, `mean_ratio`, `median_ratio` | nearest-neighbour ratio threshold and summary statistics |
+
+`memgen phase` writes `width`, `multiplier`, `tau`, `N_c`, `N_c_low`,
+`N_c_high`, the fitted `a` and `b`, the number of sizes used and a `status`
+flag.

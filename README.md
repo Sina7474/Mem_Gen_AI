@@ -1,141 +1,168 @@
-# Mem_Gen_AI
+<h1 align="center">Mem_Gen_AI</h1>
 
-Official code release for the conference paper **“Is Your Wireless Generative
-Model Learning or Memorizing?”** and its extended journal version **“Learn
-Before Memorizing: Generalization Windows in Diffusion-Based Wireless Channel
-Synthesis.”**
+<p align="center">
+  <b>Learn Before Memorizing: Generalization Windows in Diffusion-Based Wireless Channel Synthesis</b>
+</p>
 
-The repository studies when an unconditional DDIM learns the distribution of
-site-specific MIMO channels and when it begins reproducing individual training
-samples. It contains the common training pipeline, fidelity and memorization
-metrics, capacity/data ablations, and the CSI-compression and beam-alignment
-downstream evaluations used across the two manuscripts.
+<p align="center">
+  <a href="#installation"><img alt="python" src="https://img.shields.io/badge/python-3.10%2B-blue.svg"></a>
+  <a href="https://pytorch.org"><img alt="pytorch" src="https://img.shields.io/badge/pytorch-2.0%2B-ee4c2c.svg"></a>
+  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0-green.svg"></a>
+</p>
 
-## Release scope
+---
 
-This is intentionally a **code-and-documentation-only** repository. It does not
-contain datasets, model checkpoints, generated channels, logs, numerical
-results, or paper figures. Every experiment writes those artifacts to paths
-ignored by Git. See [Data and checkpoints](docs/DATA_AND_CHECKPOINTS.md) for the
-expected local layout.
+A diffusion model trained on site-specific MIMO channels first learns the
+channel distribution and only later starts reproducing its individual training
+channels. Between the two there is a **generalization window**: a band of
+training times in which the generated channels are statistically faithful and
+still private. This repository contains the code that locates that window,
+measures how it scales with the dataset size and the model capacity, and checks
+what it is worth for two downstream receivers.
+
+Two numbers describe every checkpoint:
+
+| Metric | Meaning | Behaviour |
+| --- | --- | --- |
+| `FCD` | Frechet Channel Distance between generated and held-out real channels | falls, then saturates on the real-real floor |
+| `f_mem` | fraction of generated channels that collapse onto a single training channel (`d1/d2 < kappa`) | stays near zero, then rises |
+
+The window opens at `tau_gen`, where `FCD` reaches its floor, and closes at
+`tau_mem`, where `f_mem` lifts off.
+
+## Highlights
+
+- **One trainer, one evaluator.** The dataset-size sweep, the capacity sweep,
+  the batch-size and full-batch controls and the two replication datasets are
+  arguments, not separate scripts.
+- **Self-consistent metrics.** `FCD` and `f_mem` are computed from the same
+  generated channels in the same beamspace feature space.
+- **Downstream read-out.** CSI compression (CRNet) and beam alignment (DL-GF)
+  consume the generated channels through a leakage-safe split, so their gain
+  curves can be overlaid directly on the window.
+- **Code only.** No datasets, checkpoints, generated channels or figures are
+  committed; everything is regenerated from the commands below.
 
 ## Repository layout
 
 ```text
-Code/DDIM_FMM/                         DDIM training, inference, and sampling
-DDIM_Evaluation/                       Fidelity/memorization metrics and plots
-  dataset_size_effect/                 Dataset-size scaling
-  model_size_effect/                   Model-capacity scaling
-  batch_size_effect/                   Batch-size control
-  fullbatch_effect/                    Full-batch control
-  measured_dataset_effect/             Measured-channel replication
-  dataset_size_effect_28GHz_LoS/       28 GHz replication
-  phase_diagram/                       Journal phase-diagram analysis
-Downstream_Tasks/CSI_Compression/      CRNet downstream evaluation
-Downstream_Tasks/Beam_alignment/       DL-GF downstream evaluation
-docs/                                  Inputs, provenance, and paper/code map
-scripts/                               Release validation and smoke tests
+memgen/
+├── config.py          paths, hyper-parameters, dataset registry, run naming
+├── beamspace.py       array DFT codebooks, normalisation, feature map
+├── datasets.py        loading, master shuffle, nested subsets, held-out split
+├── model.py           unconditional U-Net denoiser and the DDIM wrapper
+├── train.py           tau-indexed trainer with weight EMA and checkpoint grid
+├── sampling.py        checkpoint discovery and cached generation
+├── metrics.py         FCD, f_mem, bootstrap CIs, generalization window
+├── evaluate.py        one sweep covering every ablation in the paper
+├── phase.py           logistic fit of the phase boundary N_c(W)
+├── figures.py         paper figures, redrawn from the CSV tables
+├── cli.py             the `memgen` command-line interface
+└── downstream/
+    ├── crnet.py            CRNet autoencoder for CSI compression
+    ├── csi_compression.py  reference / augmented / full-real comparison
+    ├── beam_alignment.py   learned probing-beam experiment
+    └── dlgf/               vendored DL-GF architecture (GPL-3.0)
 ```
 
-The original directory structure is retained so that imports and experiment
-commands remain close to the research code used for the papers.
-
-## Environment
-
-The experiments were developed with Python 3.10 and PyTorch using CUDA 12.1.
-Create the Conda environment with:
+## Installation
 
 ```bash
+git clone https://github.com/Sina7474/Mem_Gen_AI.git
+cd Mem_Gen_AI
 conda env create -f environment.yml
-conda activate mem-gen-ai
+conda activate memgen
 ```
 
-Run the code from the repository root unless a command explicitly changes into
-an experiment directory.
-
-## Quick validation
-
-The smoke test uses synthetic arrays only and requires neither data nor model
-weights:
+Or, into an existing environment:
 
 ```bash
-python scripts/smoke_test.py
-python scripts/verify_release.py
+pip install -e .
 ```
 
-## Main workflows
+Datasets, checkpoints and results live outside the repository. The defaults are
+`./data`, `./runs` and `./results`; override them with `MEMGEN_DATA_ROOT`,
+`MEMGEN_RUN_ROOT` and `MEMGEN_RESULT_ROOT`. See
+[docs/datasets.md](docs/datasets.md) for the expected files.
 
-### 1. Train the DDIM
-
-Place the external channel files under `dataset/` as described in
-[Data and checkpoints](docs/DATA_AND_CHECKPOINTS.md), then run, for example:
+## Quick start
 
 ```bash
-cd Code/DDIM_FMM
-python train_DDIM_tau_ema.py 200 --max_tau 200000 --incremental --batch_size 200
+# 1. Train a generator (checkpoints land on a logarithmic grid of tau)
+memgen train --dataset sionna_3p5ghz --size 1000
+
+# 2. Measure fidelity and memorization at every checkpoint
+memgen evaluate dataset-size --sizes 200 500 1000 2000 4000
+
+# 3. Draw the two panels of the main result
+memgen figure fidelity results/tables/sionna_3p5ghz_dataset-size.csv
+memgen figure collapse  results/tables/sionna_3p5ghz_dataset-size.csv
 ```
 
-The training scripts support the dataset-size, model-width, full-batch,
-measured-channel, and 28 GHz configurations used in the journal study.
+`memgen --help` lists every subcommand; `memgen <command> --help` documents its
+arguments.
 
-### 2. Compute fidelity and memorization
+## Commands
 
-The primary 3.5 GHz dataset-size evaluation is:
+| Command | Purpose |
+| --- | --- |
+| `memgen train` | train one DDIM; `--size`, `--width`, `--batch-size`, `--full-batch` select the ablation arm |
+| `memgen evaluate` | `FCD` and `f_mem` versus `tau` for the `dataset-size`, `model-size`, `batch-size` or `full-batch` sweep |
+| `memgen phase` | fit the generalization-memorization boundary `N_c(W)` |
+| `memgen figure` | redraw `loss`, `fidelity`, `collapse`, `phase` or `downstream` figures |
+| `memgen csi` | CSI-compression downstream experiment |
+| `memgen beam` | beam-alignment downstream experiment |
+
+## Reproducing the paper
+
+[docs/reproducing.md](docs/reproducing.md) maps each figure of the manuscript to
+the exact commands that produce it. The short version:
 
 ```bash
-cd DDIM_Evaluation/dataset_size_effect
-python compute_dsize_fcd_fmem.py --sizes 100 200 500 1000 2000 4000
-python plot_dsize_fcd_fmem.py
-python plot_dsize_fmem_collapse.py
+# Dataset-size scaling and the tau/N collapse
+for n in 100 200 500 1000 2000 4000; do memgen train --size $n; done
+memgen evaluate dataset-size
+memgen figure fidelity results/tables/sionna_3p5ghz_dataset-size.csv
+memgen figure collapse  results/tables/sionna_3p5ghz_dataset-size.csv
+
+# Model capacity and the phase diagram
+for w in 64 128 256; do for n in 200 1000; do memgen train --size $n --width $w; done; done
+memgen evaluate model-size
+memgen phase results/tables/sionna_3p5ghz_model-size.csv --eps 0.10
+memgen figure phase results/tables/phase_boundary.csv
+
+# Downstream utility
+memgen csi  --sizes 200 500 1000
+memgen beam --dataset sionna_28ghz --sizes 100 500
 ```
 
-Related experiment directories expose analogous `compute_*.py` and `plot_*.py`
-entry points for model capacity, batch size, full-batch training, measured data,
-28 GHz data, and the phase diagram.
+## Datasets
 
-### 3. CSI compression
+| Key | Description | Channel shape |
+| --- | --- | --- |
+| `sionna_3p5ghz` | Sionna RT ray tracing, 3.5 GHz, LoS and NLoS | 4 x 32 |
+| `sionna_28ghz` | Sionna RT ray tracing, 28 GHz, LoS only | 4 x 32 |
+| `dichasus_1p272ghz` | DICHASUS indoor measurements, 1.272 GHz | 4 x 8 |
 
-```bash
-cd Downstream_Tasks/CSI_Compression
-python shared_reference/run_shared_reference.py
-python shared_reference/plot_shared_reference_combined.py
+All three share one master shuffle per dataset, so training subsets are nested
+across `N` and every run is evaluated against the same held-out channels.
+
+## Citation
+
+```bibtex
+@article{beyraghi2026memgen,
+  title   = {Learn Before Memorizing: Generalization Windows in
+             Diffusion-Based Wireless Channel Synthesis},
+  author  = {Beyraghi, Sina and Sadeghian, Masoud and Bin Ismail, Firdous and
+             Lozano, Angel and Almasan, Paul and Geraci, Giovanni},
+  year    = {2026}
+}
 ```
 
-The same reference channels are used to train the DDIM and CRNet in the shared-
-reference experiment. Each augmented CRNet uses a total of 5000 channels.
+## License
 
-### 4. Beam alignment
-
-```bash
-cd Downstream_Tasks/Beam_alignment
-python tau_window_28GHz_LoS/run_experiment.py
-python tau_window_28GHz_LoS/plot_results.py
-```
-
-See [Paper-to-code map](docs/PAPER_CODE_MAP.md) for the scripts associated with
-the conference and journal result families.
-
-## Reproducibility notes
-
-- The code expects datasets and checkpoints to be supplied locally; neither is
-  downloaded automatically.
-- Paths are resolved relative to the repository layout.
-- Generated artifacts are excluded by `.gitignore`.
-- `SOURCE_MANIFEST.tsv` records the origin and checksum of every copied research
-  source file.
-- The public-release changes are limited to path portability, documentation,
-  licensing, and validation support. Scientific definitions and experiment
-  parameters were not intentionally changed.
-
-## Authors
-
-Sina Beyraghi, Masoud Sadeghian, Firdous Bin Ismail, Angel Lozano, Paul Almasan,
-and Giovanni Geraci.
-
-## License and third-party code
-
-This repository is distributed under the GNU General Public License v3.0
-because the journal beam-alignment pipeline adapts GPL-3.0-licensed DL-GF code.
-The DDIM release and CRNet-derived portions retain their upstream MIT notices.
-See [Third-party notices](THIRD_PARTY_NOTICES.md) and `LICENSES/`.
+Released under the GNU General Public License v3.0, because the vendored
+beam-alignment architecture is GPL-3.0. The CRNet-derived code keeps its
+upstream MIT notice. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and
+[LICENSES/](LICENSES).
 

@@ -1,21 +1,17 @@
-name: mem-gen-ai
+name: memgen
 channels:
   - pytorch
   - nvidia
   - conda-forge
-  - defaults
 dependencies:
   - python=3.10
-  - pytorch
-  - torchvision
+  - pytorch=2.1
   - pytorch-cuda=12.1
-  - numpy<2
+  - numpy
   - scipy
   - pandas
   - matplotlib
-  - seaborn
-  - scikit-learn
   - tqdm
   - pip
   - pip:
-      - Pillow
+      - -e .

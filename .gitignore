@@ -1,52 +1,31 @@
-# Python and local environments
+# Byte-compiled / packaging artefacts
 __pycache__/
 *.py[cod]
+*.egg-info/
+build/
+dist/
 .pytest_cache/
-.ipynb_checkpoints/
+.ruff_cache/
+
+# Local environments
 .venv/
 venv/
 env/
+.env
 
-# Research inputs and generated artifacts (not part of this code-only release)
-dataset/
-datasets/
+# Datasets, checkpoints, generated channels and results are never committed
 data/
-checkpoints/
-logs/
-logs_*/
+runs/
 results/
-figures/
-metrics/
-outputs/
-generated/
-generated_*/
-models_x_epoch/
-
-# Model/data/result formats
-*.pth
-*.pt
-*.ckpt
 *.npy
 *.npz
-*.h5
-*.hdf5
+*.pt
+*.pth
 *.csv
-*.json
-*.pkl
-*.pickle
 *.pdf
 *.png
-*.jpg
-*.jpeg
-*.svg
-*.log
-nohup.out
 
-# Local configuration and editor files
-.env
-paths.yaml
-configs/paths.yaml
-.DS_Store
+# Editor state
 .vscode/
 .idea/
-
+.DS_Store
