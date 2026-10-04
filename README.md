@@ -142,7 +142,7 @@ memgen beam --dataset sionna_28ghz --sizes 100 500
 | --- | --- | --- |
 | `sionna_3p5ghz` | Sionna RT ray tracing, 3.5 GHz, LoS and NLoS | 4 x 32 |
 | `sionna_28ghz` | Sionna RT ray tracing, 28 GHz, LoS only | 4 x 32 |
-| `dichasus_1p272ghz` | DICHASUS indoor measurements, 1.272 GHz | 4 x 8 |
+| `dichasus_1p272ghz` | DICHASUS indoor measurements, 1.272 GHz | 1 x 32 |
 
 All three share one master shuffle per dataset, so training subsets are nested
 across `N` and every run is evaluated against the same held-out channels.
