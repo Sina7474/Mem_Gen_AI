@@ -1,0 +1,20 @@
+name: Mem_Gen
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch
+  - torchvision
+  - pytorch-cuda=12.1
+  - numpy
+  - scipy
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - tqdm
+  - pip
+  - pip:
+    - Pillow

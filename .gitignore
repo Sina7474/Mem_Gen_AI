@@ -1,0 +1,52 @@
+# Python and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
+# Research inputs and generated artifacts (not part of this code-only release)
+dataset/
+datasets/
+data/
+checkpoints/
+logs/
+logs_*/
+results/
+figures/
+metrics/
+outputs/
+generated/
+generated_*/
+models_x_epoch/
+
+# Model/data/result formats
+*.pth
+*.pt
+*.ckpt
+*.npy
+*.npz
+*.h5
+*.hdf5
+*.csv
+*.json
+*.pkl
+*.pickle
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.log
+nohup.out
+
+# Local configuration and editor files
+.env
+paths.yaml
+configs/paths.yaml
+.DS_Store
+.vscode/
+.idea/
+
