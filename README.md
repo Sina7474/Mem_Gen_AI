@@ -29,15 +29,11 @@ their usefulness.
 
 ## Authors
 
-| Author | Affiliation | Contact |
-| --- | --- | --- |
-| Sina Beyraghi | Telefonica Scientific Research and Universitat Pompeu Fabra, Spain | [mohammadsina.beyraghi@telefonica.com](mailto:mohammadsina.beyraghi@telefonica.com) |
-| Masoud Sadeghian | Universitat Pompeu Fabra, Spain | [masoud.sadeghian@upf.edu](mailto:masoud.sadeghian@upf.edu) |
-| Angel Lozano | Universitat Pompeu Fabra, Spain | [angel.lozano@upf.edu](mailto:angel.lozano@upf.edu) |
-| Paul Almasan | Telefonica Scientific Research, Spain | [paulalmasan@gmail.com](mailto:paulalmasan@gmail.com) |
-| Giovanni Geraci | Nokia and Universitat Pompeu Fabra, Spain | [giovanni.geraci@upf.edu](mailto:giovanni.geraci@upf.edu) |
-
-Correspondence: Sina Beyraghi.
+- Sina Beyraghi — [mohammadsina.beyraghi@telefonica.com](mailto:mohammadsina.beyraghi@telefonica.com)
+- Masoud Sadeghian — [masoud.sadeghian@upf.edu](mailto:masoud.sadeghian@upf.edu)
+- Angel Lozano — [angel.lozano@upf.edu](mailto:angel.lozano@upf.edu)
+- Paul Almasan — [paulalmasan@gmail.com](mailto:paulalmasan@gmail.com)
+- Giovanni Geraci — [giovanni.geraci@upf.edu](mailto:giovanni.geraci@upf.edu)
 
 ## What this repository does
 
