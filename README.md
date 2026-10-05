@@ -1,11 +1,5 @@
 <h1 align="center">Is Your Wireless Generative Model<br>Learning or Memorizing?</h1>
 
-<p align="center">
-  <a href="https://www.python.org"><img alt="python" src="https://img.shields.io/badge/python-3.10%2B-blue.svg"></a>
-  <a href="https://pytorch.org"><img alt="pytorch" src="https://img.shields.io/badge/pytorch-2.0%2B-ee4c2c.svg"></a>
-  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-green.svg"></a>
-</p>
-
 ---
 
 ## Abstract
