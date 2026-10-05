@@ -48,6 +48,7 @@ def train(dataset: str = cfg.DEFAULT_DATASET,
           max_tau: int = cfg.DEFAULT_MAX_TAU,
           seed: int = cfg.DEFAULT_SEED,
           ema_decay: float = cfg.EMA_DECAY,
+          deterministic: bool = True,
           resume: bool = True) -> Path:
     """Train one DDIM and checkpoint it along the ``tau`` grid.
 
@@ -60,6 +61,8 @@ def train(dataset: str = cfg.DEFAULT_DATASET,
         max_tau: number of optimiser steps to train for.
         seed: seed for the model initialisation and the data order.
         ema_decay: base decay of the weight EMA.
+        deterministic: force reproducible cuDNN kernels; see
+            :func:`memgen.config.set_seed`.
         resume: continue from the newest checkpoint if one exists.
 
     Returns:
@@ -70,8 +73,7 @@ def train(dataset: str = cfg.DEFAULT_DATASET,
     steps_per_epoch = math.ceil(n / batch_size)
     grid = cfg.tau_grid(max_tau)
 
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+    cfg.set_seed(seed, deterministic)
     device = cfg.DEVICE
 
     run_dir = spec.run_dir(n, width, batch_size, seed)
@@ -105,6 +107,7 @@ def train(dataset: str = cfg.DEFAULT_DATASET,
     (run_dir / "config.json").write_text(json.dumps({
         "dataset": spec.key, "N": n, "width": width, "batch_size": batch_size,
         "steps_per_epoch": steps_per_epoch, "max_tau": max_tau, "seed": seed,
+        "deterministic": deterministic,
         "n_T": cfg.N_T, "betas": list(cfg.BETAS), "learning_rate": cfg.LEARNING_RATE,
         "ema_decay": ema_decay, "tau_grid": grid, "t_eval": t_eval,
         "alpha_bar_t_eval": alpha_bar, "noise_level_t_eval": noise_level,

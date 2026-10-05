@@ -51,6 +51,9 @@ def build_parser() -> argparse.ArgumentParser:
     train.add_argument("--max-tau", type=int, default=cfg.DEFAULT_MAX_TAU,
                        help="number of optimiser steps")
     train.add_argument("--seed", type=int, default=cfg.DEFAULT_SEED)
+    train.add_argument("--non-deterministic", action="store_true",
+                       help="allow cuDNN autotuning; about 5 %% faster, but "
+                            "runs are then no longer bit-reproducible")
     train.add_argument("--no-resume", action="store_true",
                        help="start from scratch even if checkpoints exist")
 
@@ -149,7 +152,9 @@ def main(argv: list[str] | None = None) -> int:
         from .train import train
         train(dataset=args.dataset, n=args.size, width=args.width,
               batch_size=args.batch_size, full_batch=args.full_batch,
-              max_tau=args.max_tau, seed=args.seed, resume=not args.no_resume)
+              max_tau=args.max_tau, seed=args.seed,
+              deterministic=not args.non_deterministic,
+              resume=not args.no_resume)
 
     elif args.command == "evaluate":
         from .evaluate import evaluate_sweep

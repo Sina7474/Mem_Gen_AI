@@ -13,7 +13,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from .config import (DEVICE, GENERATION_BATCH, GENERATION_SEED, DatasetSpec)
+from .config import (DEVICE, GENERATION_BATCH, GENERATION_SEED, DatasetSpec,
+                     set_seed)
 from .model import DDIM, build_ddim
 
 __all__ = ["list_checkpoints", "load_checkpoint", "generate", "cached_samples"]
@@ -45,8 +46,12 @@ def load_checkpoint(ddim: DDIM, path: Path, weights: str = "ema") -> bool:
 @torch.no_grad()
 def generate(ddim: DDIM, n_samples: int, sample_shape: tuple[int, int, int],
              seed: int = GENERATION_SEED) -> np.ndarray:
-    """Draw ``n_samples`` channels with the deterministic DDIM sampler."""
-    torch.manual_seed(seed)
+    """Draw ``n_samples`` channels with the deterministic DDIM sampler.
+
+    Seeding here fixes the initial noise, so a given checkpoint always yields
+    the same channels and every metric is computed on the same sample set.
+    """
+    set_seed(seed)
     ddim.eval()
     chunks, drawn = [], 0
     while drawn < n_samples:
