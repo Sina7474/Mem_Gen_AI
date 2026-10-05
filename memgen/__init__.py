@@ -1,4 +1,4 @@
-"""Generalisation windows in diffusion-based wireless channel synthesis.
+"""Is your wireless generative model learning or memorizing?
 
 ``memgen`` trains unconditional DDIMs on site-specific MIMO channels and
 measures, as a function of training time, both how well the generated channels

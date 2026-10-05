@@ -1,8 +1,4 @@
-<h1 align="center">Learn Before Memorizing</h1>
-
-<p align="center">
-  <b>Generalization Windows in Diffusion-Based Wireless Channel Synthesis</b>
-</p>
+<h1 align="center">Is Your Wireless Generative Model<br>Learning or Memorizing?</h1>
 
 <p align="center">
   <a href="https://www.python.org"><img alt="python" src="https://img.shields.io/badge/python-3.10%2B-blue.svg"></a>
@@ -154,8 +150,7 @@ be bit-identical between runs.
 
 ```bibtex
 @article{beyraghi2026memgen,
-  title   = {Learn Before Memorizing: Generalization Windows in
-             Diffusion-Based Wireless Channel Synthesis},
+  title   = {{Is Your Wireless Generative Model Learning or Memorizing?}},
   author  = {Sina Beyraghi and Masoud Sadeghian and Angel Lozano and
              Paul Almasan and Giovanni Geraci},
   year    = {2026}

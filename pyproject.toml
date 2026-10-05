@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "memgen"
 version = "1.0.0"
-description = "Generalisation windows in diffusion-based wireless channel synthesis"
+description = "Is your wireless generative model learning or memorizing?"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
